@@ -122,6 +122,37 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid",
 			cfg:  config.Config{Backend: "vault", App: "myapp", Env: "prod"},
 		},
+		{
+			name:    "azure missing vault url",
+			cfg:     config.Config{Backend: "azure", App: "myapp", Env: "prod"},
+			wantErr: "azure backend requires",
+		},
+		{
+			name: "azure with mount ok",
+			cfg:  config.Config{Backend: "azure", App: "myapp", Env: "prod", Mount: "https://myvault.vault.azure.net"},
+		},
+		{
+			name: "azure with vault_url ok",
+			cfg:  config.Config{Backend: "azure", App: "myapp", Env: "prod", Azure: config.AzureConfig{VaultURL: "https://myvault.vault.azure.net"}},
+		},
+		{
+			name:    "gcp missing project",
+			cfg:     config.Config{Backend: "gcp", App: "myapp", Env: "prod"},
+			wantErr: "gcp backend requires",
+		},
+		{
+			name: "gcp with mount ok",
+			cfg:  config.Config{Backend: "gcp", App: "myapp", Env: "prod", Mount: "my-project"},
+		},
+		{
+			name:    "onepassword missing mount",
+			cfg:     config.Config{Backend: "onepassword", App: "myapp", Env: "prod"},
+			wantErr: "onepassword backend requires",
+		},
+		{
+			name: "onepassword with mount ok",
+			cfg:  config.Config{Backend: "onepassword", App: "myapp", Env: "prod", Mount: "MyVault"},
+		},
 	}
 
 	for _, tt := range tests {
