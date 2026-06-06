@@ -2,6 +2,7 @@ package vault_test
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -78,7 +79,14 @@ func newMockVaultServer(t *testing.T) *httptest.Server {
 		})
 	})
 
-	srv := httptest.NewServer(mux)
+	// Use explicit IPv4 listener — sandbox blocks IPv6 binding.
+	ln, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	srv := httptest.NewUnstartedServer(mux)
+	srv.Listener = ln
+	srv.Start()
 	t.Cleanup(srv.Close)
 	return srv
 }
