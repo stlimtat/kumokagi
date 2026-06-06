@@ -1,4 +1,4 @@
-.PHONY: build test lint coverage clean
+.PHONY: build test lint fmt vet coverage clean
 
 BINARY := kumokagi
 CMD := ./cmd/kumokagi
@@ -15,6 +15,12 @@ coverage:
 
 lint:
 	golangci-lint run ./...
+
+fmt:
+	gofmt -s -w .
+
+vet:
+	go vet ./...
 
 clean:
 	rm -rf bin/ coverage.out

@@ -8,3 +8,8 @@ dist/
 *.egg-info/
 .venv/
 python/.venv/
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
