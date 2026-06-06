@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kumokagi"
+version = "0.1.0"
+description = "Ephemeral secrets management — pydantic-settings source for HashiCorp Vault"
+requires-python = ">=3.12"
+dependencies = [
+    "hvac>=2.3.0",
+    "pydantic-settings>=2.7.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "responses>=0.25.0",
+    "pytest-cov>=6.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
