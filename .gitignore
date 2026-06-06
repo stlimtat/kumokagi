@@ -1,0 +1,10 @@
+bin/
+coverage.out
+*.out
+.env
+__pycache__/
+*.pyc
+dist/
+*.egg-info/
+.venv/
+python/.venv/
