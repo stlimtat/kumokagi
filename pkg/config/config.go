@@ -67,10 +67,17 @@ func Load(path string) (*Config, error) {
 	return &cfg, nil
 }
 
+var validBackends = map[string]bool{
+	"vault": true, "aws": true, "azure": true, "gcp": true, "onepassword": true,
+}
+
 // Validate returns an error if required fields are missing.
 func (c *Config) Validate() error {
 	if c.Backend == "" {
 		return fmt.Errorf("backend is required")
+	}
+	if !validBackends[c.Backend] {
+		return fmt.Errorf("unknown backend %q (valid: vault, aws, azure, gcp, onepassword)", c.Backend)
 	}
 	if c.App == "" {
 		return fmt.Errorf("app is required")

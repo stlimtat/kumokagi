@@ -16,7 +16,7 @@ var deleteCmd = &cobra.Command{
 		if err := loadConfig(ctx); err != nil {
 			return err
 		}
-		if err := vaultClient.Delete(ctx, provider.SecretPath{
+		if err := secretClient.Delete(ctx, provider.SecretPath{
 			Mount: appCfg.Mount,
 			Env:   appCfg.Env,
 			App:   appCfg.App,

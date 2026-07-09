@@ -16,7 +16,7 @@ var getCmd = &cobra.Command{
 		if err := loadConfig(ctx); err != nil {
 			return err
 		}
-		val, err := vaultClient.Get(ctx, provider.SecretPath{
+		val, err := secretClient.Get(ctx, provider.SecretPath{
 			Mount: appCfg.Mount,
 			Env:   appCfg.Env,
 			App:   appCfg.App,

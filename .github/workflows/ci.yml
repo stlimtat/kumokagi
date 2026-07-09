@@ -30,7 +30,7 @@ jobs:
 
   test-go:
     needs: changes
-    if: ${{ needs.changes.outputs.go == 'true' || github.event_name == 'push' }}
+    if: ${{ needs.changes.outputs.go == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +52,7 @@ jobs:
 
   test-python:
     needs: changes
-    if: ${{ needs.changes.outputs.python == 'true' || github.event_name == 'push' }}
+    if: ${{ needs.changes.outputs.python == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,7 +72,7 @@ jobs:
 
   build-docs:
     needs: changes
-    if: ${{ needs.changes.outputs.docs == 'true' || github.event_name == 'push' }}
+    if: ${{ needs.changes.outputs.docs == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -8,8 +8,13 @@ dist/
 *.egg-info/
 .venv/
 python/.venv/
+python/.coverage
 .idea/
 .vscode/
 *.swp
 *.swo
 .DS_Store
+
+docs/site/public/
+docs/site/resources/
+docs/site/.hugo_build.lock

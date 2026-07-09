@@ -19,12 +19,15 @@ class KumokagiSettingsSource(PydanticBaseSettingsSource):
         self,
         settings_cls: type[BaseSettings],
         *,
-        provider: Provider,
         config: Config,
+        provider: Provider | None = None,
     ) -> None:
         super().__init__(settings_cls)
-        self._provider = provider
         self._config = config
+        if provider is None:
+            from kumokagi.factory import new_provider
+            provider = new_provider(config)
+        self._provider = provider
 
     def get_field_value(self, field_name: str, field_info: Any) -> tuple[Any, str, bool]:
         if field_name not in self._config.keys:

@@ -1,0 +1,16 @@
+baseURL = 'https://stlimtat.github.io/kumokagi/'
+locale = 'en-us'
+title = 'kumokagi'
+
+[params]
+  BookTheme = 'auto'
+  BookToC = true
+  BookSearch = true
+  BookMenuBundle = false
+  BookSection = '/'
+  BookRepo = 'https://github.com/stlimtat/kumokagi'
+  BookEditPath = 'edit/master/docs/site/content'
+
+[module]
+  [[module.imports]]
+    path = 'github.com/alex-shpak/hugo-book'

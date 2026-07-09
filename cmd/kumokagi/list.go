@@ -16,7 +16,7 @@ var listCmd = &cobra.Command{
 		if err := loadConfig(ctx); err != nil {
 			return err
 		}
-		keys, err := vaultClient.List(ctx, provider.SecretPath{
+		keys, err := secretClient.List(ctx, provider.SecretPath{
 			Mount: appCfg.Mount,
 			Env:   appCfg.Env,
 			App:   appCfg.App,

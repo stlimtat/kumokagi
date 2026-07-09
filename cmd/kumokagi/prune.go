@@ -7,7 +7,10 @@ import (
 	"github.com/stlimtat/kumokagi/pkg/provider"
 )
 
-var pruneConfirm bool
+var (
+	pruneConfirm bool
+	pruneForce   bool
+)
 
 var pruneCmd = &cobra.Command{
 	Use:   "prune",
@@ -35,8 +38,11 @@ var pruneCmd = &cobra.Command{
 			fmt.Fprintln(cmd.OutOrStdout(), "\nDry run. Pass --confirm to delete.")
 			return nil
 		}
+		if len(appCfg.Keys) == 0 && !pruneForce {
+			return fmt.Errorf("refusing to delete: config declares no keys (add --force to override)")
+		}
 		for _, k := range orphaned {
-			if err := vaultClient.Delete(ctx, provider.SecretPath{
+			if err := secretClient.Delete(ctx, provider.SecretPath{
 				Mount: appCfg.Mount,
 				Env:   appCfg.Env,
 				App:   appCfg.App,
@@ -52,5 +58,6 @@ var pruneCmd = &cobra.Command{
 
 func init() {
 	pruneCmd.Flags().BoolVar(&pruneConfirm, "confirm", false, "actually delete orphaned secrets")
+	pruneCmd.Flags().BoolVar(&pruneForce, "force", false, "allow deletion even when config declares no keys")
 	rootCmd.AddCommand(pruneCmd)
 }

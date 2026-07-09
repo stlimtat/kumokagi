@@ -7,16 +7,17 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/stlimtat/kumokagi/internal/vault"
 	"github.com/stlimtat/kumokagi/pkg/config"
+	"github.com/stlimtat/kumokagi/pkg/factory"
+	"github.com/stlimtat/kumokagi/pkg/provider"
 	"github.com/stlimtat/kumokagi/pkg/vipersource"
 )
 
 var (
-	cfgFile     string
-	appCfg      *config.Config
-	vaultClient *vault.Client
-	source      *vipersource.Source
+	cfgFile      string
+	appCfg       *config.Config
+	secretClient provider.Provider
+	source       *vipersource.Source
 )
 
 var rootCmd = &cobra.Command{
@@ -50,11 +51,11 @@ func loadConfig(ctx context.Context) error {
 	}
 	appCfg = cfg
 
-	client, err := vault.New(ctx)
+	client, err := factory.New(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("connect to vault: %w", err)
+		return fmt.Errorf("connect to %s: %w", cfg.Backend, err)
 	}
-	vaultClient = client
+	secretClient = client
 	source = vipersource.New(client, cfg)
 	return nil
 }
