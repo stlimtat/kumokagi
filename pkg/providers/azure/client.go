@@ -11,8 +11,15 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 	"github.com/stlimtat/kumokagi/pkg/config"
+	"github.com/stlimtat/kumokagi/pkg/factory"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 )
+
+func init() {
+	factory.Register("azure", func(ctx context.Context, cfg *config.Config) (provider.Provider, error) {
+		return New(ctx, cfg)
+	})
+}
 
 // Client implements provider.Provider for Azure Key Vault.
 type Client struct {

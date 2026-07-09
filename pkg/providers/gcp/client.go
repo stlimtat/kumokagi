@@ -8,11 +8,18 @@ import (
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/stlimtat/kumokagi/pkg/config"
+	"github.com/stlimtat/kumokagi/pkg/factory"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func init() {
+	factory.Register("gcp", func(ctx context.Context, cfg *config.Config) (provider.Provider, error) {
+		return New(ctx, cfg)
+	})
+}
 
 // Client implements provider.Provider for GCP Secret Manager.
 type Client struct {

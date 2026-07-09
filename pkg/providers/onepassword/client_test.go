@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stlimtat/kumokagi/internal/onepassword"
+	"github.com/stlimtat/kumokagi/pkg/providers/onepassword"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

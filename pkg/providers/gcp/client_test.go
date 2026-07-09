@@ -7,7 +7,7 @@ import (
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
-	"github.com/stlimtat/kumokagi/internal/gcp"
+	"github.com/stlimtat/kumokagi/pkg/providers/gcp"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

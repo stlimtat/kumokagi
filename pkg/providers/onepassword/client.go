@@ -8,8 +8,15 @@ import (
 	"strings"
 
 	"github.com/stlimtat/kumokagi/pkg/config"
+	"github.com/stlimtat/kumokagi/pkg/factory"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 )
+
+func init() {
+	factory.Register("onepassword", func(ctx context.Context, cfg *config.Config) (provider.Provider, error) {
+		return New(cfg), nil
+	})
+}
 
 // Client implements provider.Provider using the op CLI.
 // Assumes `op signin` has been completed and op is in PATH.

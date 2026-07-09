@@ -14,10 +14,11 @@ import (
 )
 
 var (
-	cfgFile      string
-	appCfg       *config.Config
-	secretClient provider.Provider
-	source       *vipersource.Source
+	cfgFile         string
+	backendOverride string
+	appCfg          *config.Config
+	secretClient    provider.Provider
+	source          *vipersource.Source
 )
 
 var rootCmd = &cobra.Command{
@@ -36,6 +37,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", config.FileName, "config file path")
+	rootCmd.PersistentFlags().StringVar(&backendOverride, "backend", "", "override backend from config (vault|aws|azure|gcp|onepassword)")
 	viper.SetEnvPrefix("KUMOKAGI")
 	viper.AutomaticEnv()
 }
@@ -48,6 +50,9 @@ func loadConfig(ctx context.Context) error {
 	}
 	if err := cfg.Validate(); err != nil {
 		return err
+	}
+	if backendOverride != "" {
+		cfg.Backend = backendOverride
 	}
 	appCfg = cfg
 

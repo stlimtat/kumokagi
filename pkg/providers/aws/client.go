@@ -12,8 +12,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/stlimtat/kumokagi/pkg/config"
+	"github.com/stlimtat/kumokagi/pkg/factory"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 )
+
+func init() {
+	factory.Register("aws", func(ctx context.Context, cfg *config.Config) (provider.Provider, error) {
+		return New(ctx, cfg)
+	})
+}
 
 // Client implements provider.Provider for AWS Secrets Manager.
 type Client struct {

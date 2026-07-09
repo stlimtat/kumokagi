@@ -14,7 +14,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
-	internaws "github.com/stlimtat/kumokagi/internal/aws"
+	internaws "github.com/stlimtat/kumokagi/pkg/providers/aws"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

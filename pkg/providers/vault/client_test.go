@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stlimtat/kumokagi/internal/vault"
+	"github.com/stlimtat/kumokagi/pkg/providers/vault"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

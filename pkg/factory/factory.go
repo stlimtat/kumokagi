@@ -3,30 +3,35 @@ package factory
 import (
 	"context"
 	"fmt"
+	"sync"
 
-	"github.com/stlimtat/kumokagi/internal/aws"
-	"github.com/stlimtat/kumokagi/internal/azure"
-	"github.com/stlimtat/kumokagi/internal/gcp"
-	"github.com/stlimtat/kumokagi/internal/onepassword"
-	"github.com/stlimtat/kumokagi/internal/vault"
 	"github.com/stlimtat/kumokagi/pkg/config"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 )
 
-// New returns the Provider for the backend named in cfg.Backend.
+// Constructor builds a Provider for a given config.
+type Constructor func(ctx context.Context, cfg *config.Config) (provider.Provider, error)
+
+var (
+	mu       sync.RWMutex
+	registry = map[string]Constructor{}
+)
+
+// Register registers a backend constructor. Called from provider init() functions.
+func Register(name string, fn Constructor) {
+	mu.Lock()
+	defer mu.Unlock()
+	registry[name] = fn
+}
+
+// New returns the Provider for cfg.Backend.
+// Import _ "github.com/stlimtat/kumokagi/pkg/factory/all" to register all backends.
 func New(ctx context.Context, cfg *config.Config) (provider.Provider, error) {
-	switch cfg.Backend {
-	case "vault":
-		return vault.New(ctx)
-	case "aws":
-		return aws.New(ctx, cfg)
-	case "azure":
-		return azure.New(ctx, cfg)
-	case "gcp":
-		return gcp.New(ctx, cfg)
-	case "onepassword":
-		return onepassword.New(cfg), nil
-	default:
-		return nil, fmt.Errorf("unknown backend %q (valid: vault, aws, azure, gcp, onepassword)", cfg.Backend)
+	mu.RLock()
+	fn, ok := registry[cfg.Backend]
+	mu.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("unknown backend %q — did you import its package?", cfg.Backend)
 	}
+	return fn(ctx, cfg)
 }
