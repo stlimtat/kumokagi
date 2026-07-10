@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="kumokagi favicon">
+  <!-- Filled-shapes-only variant of the logo: ImageMagick's SVG renderer
+       drops stroked circles, so the key ring is two filled circles. -->
+  <!-- Cloud body -->
+  <g fill="#4A90D9">
+    <circle cx="62"  cy="108" r="40"/>
+    <circle cx="100" cy="84"  r="50"/>
+    <circle cx="142" cy="106" r="36"/>
+    <rect x="30" y="108" width="142" height="46" rx="8"/>
+  </g>
+
+  <!-- Key (gold) -->
+  <!-- Ring: gold disc with cloud-coloured centre -->
+  <circle cx="84" cy="114" r="28.5" fill="#F5A623"/>
+  <circle cx="84" cy="114" r="19.5" fill="#4A90D9"/>
+  <!-- Stem -->
+  <rect x="106" y="109" width="58" height="10" rx="4" fill="#F5A623"/>
+  <!-- Teeth -->
+  <rect x="152" y="119" width="8"  height="16" rx="2" fill="#F5A623"/>
+  <rect x="139" y="119" width="8"  height="13" rx="2" fill="#F5A623"/>
+</svg>

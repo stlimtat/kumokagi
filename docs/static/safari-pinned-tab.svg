@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="kumokagi">
+  <!-- Monochrome pinned-tab mask: cloud silhouette (Safari renders one colour) -->
+  <g fill="#000000">
+    <circle cx="62"  cy="108" r="40"/>
+    <circle cx="100" cy="84"  r="50"/>
+    <circle cx="142" cy="106" r="36"/>
+    <rect x="30" y="108" width="142" height="46" rx="8"/>
+  </g>
+</svg>
