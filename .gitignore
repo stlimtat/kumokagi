@@ -17,6 +17,9 @@ python/.coverage
 
 .claude/
 
-docs/site/public/
-docs/site/resources/
-docs/site/.hugo_build.lock
+docs/public/
+docs/resources/
+docs/.hugo_build.lock
+docs/node_modules/
+docs/hugo_stats.json
+docs/assets/jsconfig.json

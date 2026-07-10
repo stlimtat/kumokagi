@@ -1,13 +1,14 @@
 # kumokagi 雲鍵
 
-[![CI](https://github.com/stlimtat/kumokagi/actions/workflows/ci.yml/badge.svg)](https://github.com/stlimtat/kumokagi/actions/workflows/ci.yml)
+[![CI Go](https://github.com/stlimtat/kumokagi/actions/workflows/ci-go.yml/badge.svg)](https://github.com/stlimtat/kumokagi/actions/workflows/ci-go.yml)
+[![CI Python](https://github.com/stlimtat/kumokagi/actions/workflows/ci-python.yml/badge.svg)](https://github.com/stlimtat/kumokagi/actions/workflows/ci-python.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/stlimtat/kumokagi.svg)](https://pkg.go.dev/github.com/stlimtat/kumokagi)
 [![Go Version](https://img.shields.io/badge/go-1.26+-blue.svg)](https://go.dev/doc/install)
 [![codecov](https://codecov.io/gh/stlimtat/kumokagi/branch/master/graph/badge.svg)](https://codecov.io/gh/stlimtat/kumokagi)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 <p align="center">
-  <img src="docs/site/static/img/logo.svg" alt="kumokagi — cloud key" width="200"/>
+  <img src="docs/static/img/logo.svg" alt="kumokagi — cloud key" width="200"/>
 </p>
 
 > Ephemeral secrets management for Go and Python — one identity, any cloud.
@@ -168,17 +169,13 @@ secrets = AppSecrets()
 
 **[stlimtat.github.io/kumokagi](https://stlimtat.github.io/kumokagi/)**
 
+- [Introduction](https://stlimtat.github.io/kumokagi/introduction/) — why we do not trust secrets in environment variables
 - [Quickstart](https://stlimtat.github.io/kumokagi/quickstart/)
-- [Concepts](https://stlimtat.github.io/kumokagi/concepts/)
 - [Architecture](https://stlimtat.github.io/kumokagi/architecture/)
-- [Examples](https://stlimtat.github.io/kumokagi/examples/)
-  - [Vault](https://stlimtat.github.io/kumokagi/examples/vault/)
-  - [AWS Secrets Manager](https://stlimtat.github.io/kumokagi/examples/aws/)
-  - [Azure Key Vault](https://stlimtat.github.io/kumokagi/examples/azure/)
-  - [GCP Secret Manager](https://stlimtat.github.io/kumokagi/examples/gcp/)
-  - [1Password](https://stlimtat.github.io/kumokagi/examples/onepassword/)
-  - [Startup MVP Guide](https://stlimtat.github.io/kumokagi/examples/startup-mvp/)
-- How-to guides: [Vault](https://stlimtat.github.io/kumokagi/how-to/vault/) · [AWS](https://stlimtat.github.io/kumokagi/how-to/aws/) · [Azure](https://stlimtat.github.io/kumokagi/how-to/azure/) · [GCP](https://stlimtat.github.io/kumokagi/how-to/gcp/) · [1Password](https://stlimtat.github.io/kumokagi/how-to/onepassword/)
+- [How-to guides](https://stlimtat.github.io/kumokagi/how-to/) — setup, auth diagrams, and troubleshooting per backend:
+  [Vault](https://stlimtat.github.io/kumokagi/how-to/vault/) · [AWS](https://stlimtat.github.io/kumokagi/how-to/aws/) · [Azure](https://stlimtat.github.io/kumokagi/how-to/azure/) · [GCP](https://stlimtat.github.io/kumokagi/how-to/gcp/) · [1Password](https://stlimtat.github.io/kumokagi/how-to/onepassword/) · [Startup MVP Guide](https://stlimtat.github.io/kumokagi/how-to/startup-mvp/)
+- Language integration: [Go — Cobra/Viper](https://stlimtat.github.io/kumokagi/how-to/cobra-viper/) · [Python — pydantic-settings](https://stlimtat.github.io/kumokagi/how-to/pydantic/)
+- [ADRs](https://stlimtat.github.io/kumokagi/adrs/) · [Contributing](https://stlimtat.github.io/kumokagi/contributing/) · [License](https://stlimtat.github.io/kumokagi/license/)
 
 ---
 

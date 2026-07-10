@@ -1,0 +1,67 @@
+name: CI Go
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/ci-go.yml
+      - '**/*.go'
+      - go.mod
+      - go.sum
+  pull_request:
+    branches: [master]
+    paths:
+      - .github/workflows/ci-go.yml
+      - '**/*.go'
+      - go.mod
+      - go.sum
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ contains(github.ref, 'master') }}
+
+jobs:
+  test-go:
+    name: Go ${{ matrix.go-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.26"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: |
+          go test \
+            -race \
+            -count=1 \
+            -timeout=120s \
+            -coverprofile=coverage.out \
+            -covermode=atomic \
+            ./...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | grep total
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.out
+          flags: go
+          token: ${{ secrets.CODECOV_TOKEN }}

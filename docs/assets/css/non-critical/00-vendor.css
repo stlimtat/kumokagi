@@ -1,0 +1,29 @@
+/*! purgecss start ignore */
+
+/*
+  Overrides the theme's 00-vendor.css: the theme derives Prism plugin import
+  paths from RelPermalink, which breaks when the site is served from a
+  subpath (github.io/kumokagi/). Importing the npm package path lets
+  postcss-import resolve via node_modules instead.
+*/
+{{ range $.Site.Params.prism.plugins }}
+  {{ $path := printf "prismjs/plugins/%s/prism-%s.css" . . }}
+  {{ $pluginCSS := resources.Get $path }}
+  {{ if $pluginCSS }}
+    {{ printf "/* Import stylesheet for Prism plugin '%s' */" . }}
+    @import "{{ $path }}";
+  {{ end }}
+{{ end }}
+
+/* Prism Font */
+code,
+kbd,
+code[class*="language-"],
+pre[class*="language-"] {
+  font-family: var(--font-monospace);
+}
+
+/*! purgecss end ignore */
+
+/* Default license header for non-vendor CSS source code that follows */
+/*! MIT License | github.com/schnerring/hugo-theme-gruvbox */

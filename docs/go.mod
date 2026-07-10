@@ -1,0 +1,8 @@
+module github.com/stlimtat/kumokagi/docs
+
+go 1.26.5
+
+require (
+	github.com/schnerring/hugo-mod-json-resume v0.0.0-20260709203326-4d35bdf77562 // indirect
+	github.com/schnerring/hugo-theme-gruvbox v0.0.0-20251001122453-81058f53a809 // indirect
+)

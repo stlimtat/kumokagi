@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
     paths:
-      - docs/site/**
+      - docs/**
       - .github/workflows/docs.yml
   workflow_dispatch:
 
@@ -36,21 +36,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
           fetch-depth: 1
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Setup Node
+        uses: actions/setup-node@v5
         with:
-          go-version: "1.26"
-          cache-dependency-path: docs/site/go.sum
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install npm packages (theme assets)
+        working-directory: docs
+        run: npm ci
 
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
 
+      # Hugo modules are vendored in docs/_vendor, so no Go toolchain is needed.
       - name: Build with Hugo
-        working-directory: docs/site
+        working-directory: docs
         env:
           HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
           HUGO_ENVIRONMENT: production
@@ -63,7 +68,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/site/public
+          path: docs/public
 
   deploy:
     environment:
