@@ -5,9 +5,15 @@ from dataclasses import dataclass, field
 
 import yaml
 
+from kumokagi.provider import SecretPath
+
 ENV_VAR = "KUMOKAGI_ENV"
 DEFAULT_MOUNT = "secret"
 CONFIG_FILE = ".kumokagi.yaml"
+
+# Cap the config file size to avoid a memory-exhaustion DoS from a hostile
+# .kumokagi.yaml (the file is meant to be committed and small).
+MAX_CONFIG_BYTES = 1 << 20  # 1 MiB
 
 VALID_BACKENDS = {"vault", "aws", "azure", "gcp", "onepassword"}
 
@@ -61,6 +67,12 @@ class Config:
             raise ValueError("app is required")
         if not self.env:
             raise ValueError(f"env is required (set in config or {ENV_VAR})")
+        # Validate mount/env/app and every declared key up front, so a hostile
+        # .kumokagi.yaml is rejected before any value reaches a backend. Keys
+        # are checked here because they are not otherwise validated until fetch.
+        SecretPath(mount=self.mount, env=self.env, app=self.app).validate()
+        for key in self.keys:
+            SecretPath(mount=self.mount, env=self.env, app=self.app, key=key).validate()
         if self.backend == "azure" and not self.mount and not self.azure.vault_url:
             raise ValueError("azure backend requires vault URL in mount or azure.vault_url")
         if self.backend == "gcp" and not self.mount and not self.gcp.project:
@@ -70,6 +82,9 @@ class Config:
 
 
 def load_config(path: str = CONFIG_FILE) -> Config:
+    size = os.path.getsize(path)
+    if size > MAX_CONFIG_BYTES:
+        raise ValueError(f"config {path} is too large ({size} bytes, max {MAX_CONFIG_BYTES})")
     with open(path) as f:
         data = yaml.safe_load(f) or {}
 

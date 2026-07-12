@@ -4,12 +4,17 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/stlimtat/kumokagi/pkg/provider"
 	"gopkg.in/yaml.v3"
 )
 
 const DefaultMount = "secret"
 const EnvVarName = "KUMOKAGI_ENV"
 const FileName = ".kumokagi.yaml"
+
+// maxConfigBytes caps the config file size to avoid a memory-exhaustion DoS
+// from a hostile .kumokagi.yaml (the file is meant to be committed and small).
+const maxConfigBytes = 1 << 20 // 1 MiB
 
 // Config holds the non-secret metadata from .kumokagi.yaml.
 type Config struct {
@@ -50,6 +55,13 @@ type OnePasswordConfig struct{}
 
 // Load reads a .kumokagi.yaml file. KUMOKAGI_ENV overrides the env field.
 func Load(path string) (*Config, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("read config %s: %w", path, err)
+	}
+	if info.Size() > maxConfigBytes {
+		return nil, fmt.Errorf("config %s is too large (%d bytes, max %d)", path, info.Size(), maxConfigBytes)
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read config %s: %w", path, err)
@@ -84,6 +96,18 @@ func (c *Config) Validate() error {
 	}
 	if c.Env == "" {
 		return fmt.Errorf("env is required (set in config or %s)", EnvVarName)
+	}
+	// Validate mount/env/app and every declared key up front, so a hostile
+	// .kumokagi.yaml is rejected before any value reaches a backend. Keys are
+	// checked here because they are not otherwise validated until fetch time.
+	base := provider.SecretPath{Mount: c.Mount, Env: c.Env, App: c.App}
+	if err := base.Validate(); err != nil {
+		return err
+	}
+	for _, key := range c.Keys {
+		if err := (provider.SecretPath{Mount: c.Mount, Env: c.Env, App: c.App, Key: key}).Validate(); err != nil {
+			return err
+		}
 	}
 	switch c.Backend {
 	case "azure":

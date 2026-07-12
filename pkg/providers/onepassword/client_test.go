@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stlimtat/kumokagi/pkg/providers/onepassword"
 	"github.com/stlimtat/kumokagi/pkg/provider"
+	"github.com/stlimtat/kumokagi/pkg/providers/onepassword"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -224,4 +224,50 @@ func TestExists_False(t *testing.T) {
 	ok, err := c.Exists(context.Background(), testPath)
 	require.NoError(t, err)
 	assert.False(t, ok)
+}
+
+// TestOpArgs_EndOfOptionsTerminator verifies every op invocation places a "--"
+// end-of-options terminator before untrusted operands (item title, field
+// assignment, secret ref), so an operand can never be parsed as an op flag.
+func TestOpArgs_EndOfOptionsTerminator(t *testing.T) {
+	t.Parallel()
+
+	// dashDashBeforeOperand returns true if "--" appears and the operand
+	// (the last positional) follows it.
+	assertTerminated := func(t *testing.T, args []string) {
+		t.Helper()
+		idx := -1
+		for i, a := range args {
+			if a == "--" {
+				idx = i
+			}
+		}
+		require.NotEqual(t, -1, idx, "expected a -- terminator in args: %v", args)
+		assert.Less(t, idx, len(args)-1, "expected an operand after -- in args: %v", args)
+		for _, a := range args[idx+1:] {
+			assert.NotEqual(t, "-", string(a[0]), "operand after -- must not look like a flag: %q", a)
+		}
+	}
+
+	var captured [][]string
+	c := onepassword.NewWithExec("Development", func(_ context.Context, _ string, args ...string) ([]byte, error) {
+		captured = append(captured, args)
+		key := fmt.Sprintf("%v", args)
+		if containsAll(key, "item get") {
+			return []byte(`{"fields":[]}`), nil
+		}
+		return []byte("s3cr3t"), nil
+	})
+
+	ctx := context.Background()
+	_, _ = c.Get(ctx, testPath)
+	_ = c.Set(ctx, testPath, "v")
+	_ = c.Delete(ctx, testPath)
+	_, _ = c.List(ctx, testPath)
+	_, _ = c.Exists(ctx, testPath)
+
+	require.NotEmpty(t, captured)
+	for _, args := range captured {
+		assertTerminated(t, args)
+	}
 }

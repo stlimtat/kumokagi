@@ -33,5 +33,11 @@ func New(ctx context.Context, cfg *config.Config) (provider.Provider, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown backend %q — did you import its package?", cfg.Backend)
 	}
-	return fn(ctx, cfg)
+	p, err := fn(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+	// Wrap so every SecretPath is validated before it reaches a backend path,
+	// resource name, or the op CLI argv — the single injection chokepoint.
+	return provider.NewValidating(p), nil
 }

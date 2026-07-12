@@ -5,11 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
 // ErrNotFound is returned when a secret does not exist in the backend.
 var ErrNotFound = errors.New("secret not found")
+
+// ErrInvalidPath is returned when a SecretPath component fails validation.
+var ErrInvalidPath = errors.New("invalid secret path")
+
+// identifierRe matches a safe env/app/key component: alphanumerics plus
+// dot/underscore/dash, first char never a dash. Forbidding "/" blocks Vault
+// logical-path traversal; forbidding a leading "-" and "="/"["/"]" blocks
+// option and assignment injection into the op CLI.
+var identifierRe = regexp.MustCompile(`^[A-Za-z0-9_.][A-Za-z0-9._-]{0,252}$`)
 
 // SecretPath is the fully-qualified location of a secret.
 // Convention: {mount}/data/{env}/{app}/{key}
@@ -18,6 +28,47 @@ type SecretPath struct {
 	Env   string
 	App   string
 	Key   string
+}
+
+// Validate rejects SecretPath components that could inject into a backend path,
+// resource name, list filter, or the op CLI argv. Env and App are always
+// required and must be safe identifiers; Key is validated only when present,
+// so listing/prune paths (which carry no key) pass. Mount is checked loosely —
+// it may legitimately be a URL (Azure) or empty (AWS ignores it) — but must not
+// contain traversal sequences or control characters.
+func (p SecretPath) Validate() error {
+	if err := validateMount(p.Mount); err != nil {
+		return err
+	}
+	if !identifierRe.MatchString(p.Env) {
+		return fmt.Errorf("%w: env %q", ErrInvalidPath, p.Env)
+	}
+	if !identifierRe.MatchString(p.App) {
+		return fmt.Errorf("%w: app %q", ErrInvalidPath, p.App)
+	}
+	if p.Key != "" && !identifierRe.MatchString(p.Key) {
+		return fmt.Errorf("%w: key %q", ErrInvalidPath, p.Key)
+	}
+	return nil
+}
+
+// validateMount rejects traversal sequences and control characters. Mount is
+// overloaded across backends (Vault mount, Azure vault URL, GCP project, 1P
+// vault name) and may be empty for AWS, so it cannot use the strict identifier
+// rule.
+func validateMount(mount string) error {
+	if mount == "" {
+		return nil
+	}
+	if strings.Contains(mount, "..") {
+		return fmt.Errorf("%w: mount %q contains %q", ErrInvalidPath, mount, "..")
+	}
+	for _, r := range mount {
+		if r < 0x20 || r == 0x7f {
+			return fmt.Errorf("%w: mount contains a control character", ErrInvalidPath)
+		}
+	}
+	return nil
 }
 
 // DataPath returns the KV v2 read/write path.
@@ -62,7 +113,11 @@ func ParseURI(uri string) (string, SecretPath, error) {
 	if parts[3] == "" {
 		return "", SecretPath{}, fmt.Errorf("URI key segment is empty")
 	}
-	return backend, SecretPath{Mount: parts[0], Env: parts[1], App: parts[2], Key: parts[3]}, nil
+	path := SecretPath{Mount: parts[0], Env: parts[1], App: parts[2], Key: parts[3]}
+	if err := path.Validate(); err != nil {
+		return "", SecretPath{}, err
+	}
+	return backend, path, nil
 }
 
 // Provider defines the interface for a secrets backend.
@@ -77,4 +132,51 @@ type Provider interface {
 	List(ctx context.Context, path SecretPath) ([]string, error)
 	// Exists returns true if the secret exists in the backend.
 	Exists(ctx context.Context, path SecretPath) (bool, error)
+}
+
+// Validating wraps a Provider and validates every SecretPath before delegating.
+// factory.New returns providers already wrapped, so every command, the viper
+// source, and the URI reader are guarded at one chokepoint.
+type Validating struct {
+	inner Provider
+}
+
+// NewValidating wraps p so that all paths are validated before use.
+func NewValidating(p Provider) *Validating {
+	return &Validating{inner: p}
+}
+
+func (v *Validating) Get(ctx context.Context, path SecretPath) (string, error) {
+	if err := path.Validate(); err != nil {
+		return "", err
+	}
+	return v.inner.Get(ctx, path)
+}
+
+func (v *Validating) Set(ctx context.Context, path SecretPath, value string) error {
+	if err := path.Validate(); err != nil {
+		return err
+	}
+	return v.inner.Set(ctx, path, value)
+}
+
+func (v *Validating) Delete(ctx context.Context, path SecretPath) error {
+	if err := path.Validate(); err != nil {
+		return err
+	}
+	return v.inner.Delete(ctx, path)
+}
+
+func (v *Validating) List(ctx context.Context, path SecretPath) ([]string, error) {
+	if err := path.Validate(); err != nil {
+		return nil, err
+	}
+	return v.inner.List(ctx, path)
+}
+
+func (v *Validating) Exists(ctx context.Context, path SecretPath) (bool, error) {
+	if err := path.Validate(); err != nil {
+		return false, err
+	}
+	return v.inner.Exists(ctx, path)
 }

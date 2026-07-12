@@ -19,10 +19,16 @@ class OnePasswordProvider(Provider):
     def _item(self, path: SecretPath) -> str:
         return f"{path.env}--{path.app}"
 
+    # Every op invocation places flags before a "--" end-of-options terminator
+    # and untrusted operands (item title, secret ref, field assignments) after
+    # it, so no operand can be reinterpreted as a flag. This is defense in
+    # depth: new_provider already validates every SecretPath, so env/app/key
+    # cannot contain the leading "-", "=", "[", "]", or "/" that
+    # option/assignment injection needs.
     def get(self, path: SecretPath) -> str:
         ref = f"op://{self._vault}/{self._item(path)}/{path.key}"
         result = self._run(
-            ["op", "read", ref, "--no-newline"],
+            ["op", "read", "--no-newline", "--", ref],
             capture_output=True, text=True, check=False,
         )
         if result.returncode != 0:
@@ -32,24 +38,25 @@ class OnePasswordProvider(Provider):
     def set(self, path: SecretPath, value: str) -> None:
         item = self._item(path)
         check = self._run(
-            ["op", "item", "get", item, f"--vault={self._vault}", "--format=json"],
+            ["op", "item", "get", f"--vault={self._vault}", "--format=json", "--", item],
             capture_output=True, text=True, check=False,
         )
         if check.returncode == 0:
             self._run(
-                ["op", "item", "edit", item, f"--vault={self._vault}", f"{path.key}={value}"],
+                ["op", "item", "edit", f"--vault={self._vault}", "--", item, f"{path.key}={value}"],
                 capture_output=True, text=True, check=True,
             )
         else:
             self._run(
-                ["op", "item", "create", f"--vault={self._vault}", f"--title={item}", f"{path.key}={value}"],
+                ["op", "item", "create", f"--vault={self._vault}", f"--title={item}",
+                 "--", f"{path.key}={value}"],
                 capture_output=True, text=True, check=True,
             )
 
     def delete(self, path: SecretPath) -> None:
         item = self._item(path)
         result = self._run(
-            ["op", "item", "edit", item, f"--vault={self._vault}", f"{path.key}[delete]"],
+            ["op", "item", "edit", f"--vault={self._vault}", "--", item, f"{path.key}[delete]"],
             capture_output=True, text=True, check=False,
         )
         # ignore if item not found (returncode != 0 means missing, which is fine)
@@ -57,7 +64,7 @@ class OnePasswordProvider(Provider):
     def list(self, path: SecretPath) -> list[str]:
         item = self._item(path)
         result = self._run(
-            ["op", "item", "get", item, f"--vault={self._vault}", "--format=json"],
+            ["op", "item", "get", f"--vault={self._vault}", "--format=json", "--", item],
             capture_output=True, text=True, check=False,
         )
         if result.returncode != 0:
@@ -68,8 +75,8 @@ class OnePasswordProvider(Provider):
     def exists(self, path: SecretPath) -> bool:
         item = self._item(path)
         result = self._run(
-            ["op", "item", "get", item, f"--vault={self._vault}",
-             f"--fields=label={path.key}", "--format=json"],
+            ["op", "item", "get", f"--vault={self._vault}",
+             f"--fields=label={path.key}", "--format=json", "--", item],
             capture_output=True, text=True, check=False,
         )
         return result.returncode == 0

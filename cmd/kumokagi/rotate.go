@@ -20,6 +20,9 @@ var rotateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
+		if rotateLength < 16 {
+			return fmt.Errorf("--length must be at least 16 (got %d)", rotateLength)
+		}
 		if err := loadConfig(ctx); err != nil {
 			return err
 		}
