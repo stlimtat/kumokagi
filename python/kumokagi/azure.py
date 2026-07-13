@@ -4,7 +4,7 @@ from azure.core.exceptions import ResourceNotFoundError
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
-from kumokagi.config import Config
+from kumokagi.config import ENV_ALLOWED_AZURE_VAULTS, Config, check_host_allowed
 from kumokagi.provider import Provider, SecretNotFoundError, SecretPath
 
 
@@ -13,6 +13,9 @@ class AzureProvider(Provider):
 
     def __init__(self, cfg: Config) -> None:
         vault_url = cfg.azure.vault_url or cfg.mount
+        # Fail closed: a hostile config redirecting the vault URL to an attacker
+        # host would exfiltrate an Entra ID token valid against every Key Vault.
+        check_host_allowed(ENV_ALLOWED_AZURE_VAULTS, vault_url)
         self._client = SecretClient(vault_url=vault_url, credential=DefaultAzureCredential())
 
     def _name(self, path: SecretPath) -> str:

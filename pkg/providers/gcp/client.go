@@ -34,6 +34,12 @@ func New(ctx context.Context, cfg *config.Config) (*Client, error) {
 	if project == "" {
 		project = cfg.Mount
 	}
+	// Fail closed: a hostile config could point the app at an attacker's
+	// project. The Google endpoint is fixed, so this is misdirection rather
+	// than token theft, but the allowlist stops it when configured.
+	if err := config.CheckValueAllowed(config.EnvAllowedGCPProjects, project); err != nil {
+		return nil, err
+	}
 	sm, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("create gcp client: %w", err)

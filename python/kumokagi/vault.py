@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import os
+
 import hvac
 
+from kumokagi.config import ENV_ALLOWED_VAULT_ADDRS, check_host_allowed
 from kumokagi.provider import Provider, SecretNotFoundError, SecretPath
 
 
@@ -13,6 +16,10 @@ class VaultProvider(Provider):
     """
 
     def __init__(self, address: str = "", token: str = "") -> None:
+        # Fail closed: a hostile config redirecting the address to an attacker's
+        # Vault would send the ambient VAULT_TOKEN to the attacker. Check the
+        # effective address (config value, else VAULT_ADDR).
+        check_host_allowed(ENV_ALLOWED_VAULT_ADDRS, address or os.getenv("VAULT_ADDR", ""))
         self._client = hvac.Client(url=address or None, token=token or None)
 
     def get(self, path: SecretPath) -> str:

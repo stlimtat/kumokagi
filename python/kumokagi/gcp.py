@@ -3,7 +3,7 @@ from __future__ import annotations
 from google.api_core.exceptions import NotFound
 from google.cloud import secretmanager
 
-from kumokagi.config import Config
+from kumokagi.config import ENV_ALLOWED_GCP_PROJECTS, Config, check_value_allowed
 from kumokagi.provider import Provider, SecretNotFoundError, SecretPath
 
 
@@ -11,8 +11,13 @@ class GCPProvider(Provider):
     """GCP Secret Manager provider."""
 
     def __init__(self, cfg: Config) -> None:
+        project = cfg.gcp.project or cfg.mount
+        # Fail closed: a hostile config could point the app at an attacker's
+        # project. The Google endpoint is fixed, so this is misdirection rather
+        # than token theft, but the allowlist stops it when configured.
+        check_value_allowed(ENV_ALLOWED_GCP_PROJECTS, project)
         self._client = secretmanager.SecretManagerServiceClient()
-        self._project = cfg.gcp.project or cfg.mount
+        self._project = project
 
     def _name(self, path: SecretPath) -> str:
         return f"{path.env}--{path.app}--{path.key}"

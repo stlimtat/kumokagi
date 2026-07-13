@@ -7,8 +7,9 @@ import (
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
-	"github.com/stlimtat/kumokagi/pkg/providers/gcp"
+	"github.com/stlimtat/kumokagi/pkg/config"
 	"github.com/stlimtat/kumokagi/pkg/provider"
+	"github.com/stlimtat/kumokagi/pkg/providers/gcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -275,4 +276,18 @@ func TestClient_Exists(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, ok)
 	})
+}
+
+// TestNew_AllowlistBlocksRedirect verifies the GCP project allowlist fails
+// closed at construction, before any SDK client is built.
+func TestNew_AllowlistBlocksRedirect(t *testing.T) {
+	t.Setenv("KUMOKAGI_ALLOWED_GCP_PROJECTS", "prod-secrets")
+	_, err := gcp.New(context.Background(), &config.Config{
+		Backend: "gcp",
+		App:     "myapp",
+		Env:     "prod",
+		GCP:     config.GCPConfig{Project: "attacker-project"},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "allowlist")
 }

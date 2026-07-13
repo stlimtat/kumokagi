@@ -112,6 +112,63 @@ def test_config_rejects_oversized_file(tmp_path):
         load_config(str(f))
 
 
+def test_config_rejects_yaml_alias_bomb(tmp_path):
+    # A billion-laughs alias bomb stays under the 1 MiB size cap but expands
+    # enormously; the no-alias loader rejects it at parse time.
+    f = tmp_path / ".kumokagi.yaml"
+    f.write_text(textwrap.dedent("""
+        backend: vault
+        app: &a myapp
+        env: *a
+        keys: [*a, *a, *a]
+    """))
+    with pytest.raises(Exception):  # yaml.YAMLError
+        load_config(str(f))
+
+
+def test_config_rejects_onepassword_vault_slash():
+    from kumokagi.config import Config
+
+    cfg = Config(backend="onepassword", mount="Team/evil", app="myapp", env="prod")
+    with pytest.raises(ValueError, match="must not contain"):
+        cfg.validate()
+
+
+def test_check_host_allowed(monkeypatch):
+    from kumokagi.config import ENV_ALLOWED_VAULT_ADDRS, check_host_allowed
+
+    # Unset => opt-in, anything allowed.
+    monkeypatch.delenv(ENV_ALLOWED_VAULT_ADDRS, raising=False)
+    check_host_allowed(ENV_ALLOWED_VAULT_ADDRS, "https://attacker.example.com")
+
+    monkeypatch.setenv(ENV_ALLOWED_VAULT_ADDRS, "https://vault.corp.example.com, vault2.corp")
+    check_host_allowed(ENV_ALLOWED_VAULT_ADDRS, "https://vault.corp.example.com/v1")
+    check_host_allowed(ENV_ALLOWED_VAULT_ADDRS, "https://VAULT.corp.example.com")  # case-insensitive
+    with pytest.raises(ValueError):
+        check_host_allowed(ENV_ALLOWED_VAULT_ADDRS, "https://attacker.example.com")
+
+
+def test_check_value_allowed(monkeypatch):
+    from kumokagi.config import ENV_ALLOWED_GCP_PROJECTS, check_value_allowed
+
+    monkeypatch.delenv(ENV_ALLOWED_GCP_PROJECTS, raising=False)
+    check_value_allowed(ENV_ALLOWED_GCP_PROJECTS, "any-project")
+
+    monkeypatch.setenv(ENV_ALLOWED_GCP_PROJECTS, "prod-secrets, staging-secrets")
+    check_value_allowed(ENV_ALLOWED_GCP_PROJECTS, "prod-secrets")
+    with pytest.raises(ValueError):
+        check_value_allowed(ENV_ALLOWED_GCP_PROJECTS, "attacker-project")
+
+
+def test_vault_provider_allowlist_blocks_redirect(monkeypatch):
+    from kumokagi.config import ENV_ALLOWED_VAULT_ADDRS
+    from kumokagi.vault import VaultProvider
+
+    monkeypatch.setenv(ENV_ALLOWED_VAULT_ADDRS, "https://vault.corp.example.com")
+    with pytest.raises(ValueError, match="allowlist"):
+        VaultProvider(address="https://attacker.example.com")
+
+
 def test_op_args_end_of_options_terminator():
     """Every op invocation must place a '--' terminator before untrusted
     operands, so an operand can never be parsed as an op flag."""

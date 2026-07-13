@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/stlimtat/kumokagi/pkg/provider"
 	"gopkg.in/yaml.v3"
@@ -15,6 +17,71 @@ const FileName = ".kumokagi.yaml"
 // maxConfigBytes caps the config file size to avoid a memory-exhaustion DoS
 // from a hostile .kumokagi.yaml (the file is meant to be committed and small).
 const maxConfigBytes = 1 << 20 // 1 MiB
+
+// Endpoint allowlist env vars. When set (comma-separated), a backend endpoint
+// resolved from config must appear in the list, or provider construction fails.
+// This is opt-in and fails closed: it stops a hostile committed config from
+// redirecting a backend to an attacker host and stealing the ambient token
+// (e.g. VAULT_TOKEN, or an Azure token whose audience covers every Key Vault).
+const (
+	EnvAllowedVaultAddrs  = "KUMOKAGI_ALLOWED_VAULT_ADDRS"
+	EnvAllowedAzureVaults = "KUMOKAGI_ALLOWED_AZURE_VAULTS"
+	EnvAllowedGCPProjects = "KUMOKAGI_ALLOWED_GCP_PROJECTS"
+)
+
+func splitAllow(envVar string) []string {
+	raw := os.Getenv(envVar)
+	if raw == "" {
+		return nil
+	}
+	var out []string
+	for _, p := range strings.Split(raw, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func endpointHost(s string) string {
+	if strings.Contains(s, "://") {
+		if u, err := url.Parse(s); err == nil && u.Host != "" {
+			return strings.ToLower(u.Host)
+		}
+	}
+	return strings.ToLower(strings.Trim(s, "/"))
+}
+
+// CheckHostAllowed verifies that endpoint's host is in the allowlist named by
+// envVar. An unset allowlist permits any host (opt-in).
+func CheckHostAllowed(envVar, endpoint string) error {
+	allow := splitAllow(envVar)
+	if len(allow) == 0 {
+		return nil
+	}
+	host := endpointHost(endpoint)
+	for _, a := range allow {
+		if strings.EqualFold(endpointHost(a), host) {
+			return nil
+		}
+	}
+	return fmt.Errorf("endpoint %q is not in the %s allowlist", endpoint, envVar)
+}
+
+// CheckValueAllowed verifies that value is in the allowlist named by envVar,
+// matched exactly (used for non-URL identifiers such as a GCP project).
+func CheckValueAllowed(envVar, value string) error {
+	allow := splitAllow(envVar)
+	if len(allow) == 0 {
+		return nil
+	}
+	for _, a := range allow {
+		if a == value {
+			return nil
+		}
+	}
+	return fmt.Errorf("value %q is not in the %s allowlist", value, envVar)
+}
 
 // Config holds the non-secret metadata from .kumokagi.yaml.
 type Config struct {
@@ -121,6 +188,11 @@ func (c *Config) Validate() error {
 	case "onepassword":
 		if c.Mount == "" {
 			return fmt.Errorf("onepassword backend requires vault name in mount")
+		}
+		// A "/" in the vault name would add a path segment to the op:// ref
+		// (op://{vault}/{item}/{field}) and address a different field.
+		if strings.Contains(c.Mount, "/") {
+			return fmt.Errorf("onepassword vault name must not contain '/': %q", c.Mount)
 		}
 	}
 	return nil

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 import yaml
 
@@ -16,6 +17,57 @@ CONFIG_FILE = ".kumokagi.yaml"
 MAX_CONFIG_BYTES = 1 << 20  # 1 MiB
 
 VALID_BACKENDS = {"vault", "aws", "azure", "gcp", "onepassword"}
+
+# Endpoint allowlist env vars. When set (comma-separated), a backend endpoint
+# resolved from config must appear in the list, or provider construction fails.
+# Opt-in and fail-closed: stops a hostile committed config from redirecting a
+# backend to an attacker host and stealing the ambient token (VAULT_TOKEN, or
+# an Azure token whose audience covers every Key Vault).
+ENV_ALLOWED_VAULT_ADDRS = "KUMOKAGI_ALLOWED_VAULT_ADDRS"
+ENV_ALLOWED_AZURE_VAULTS = "KUMOKAGI_ALLOWED_AZURE_VAULTS"
+ENV_ALLOWED_GCP_PROJECTS = "KUMOKAGI_ALLOWED_GCP_PROJECTS"
+
+
+def _split_allow(env_var: str) -> list[str]:
+    return [p.strip() for p in os.getenv(env_var, "").split(",") if p.strip()]
+
+
+def _endpoint_host(s: str) -> str:
+    if "://" in s:
+        host = urlparse(s).netloc
+        if host:
+            return host.lower()
+    return s.strip("/").lower()
+
+
+def check_host_allowed(env_var: str, endpoint: str) -> None:
+    """Raise ValueError if endpoint's host is not in the allowlist named by
+    env_var. An unset allowlist permits any host (opt-in)."""
+    allow = _split_allow(env_var)
+    if not allow:
+        return
+    if _endpoint_host(endpoint) not in {_endpoint_host(a) for a in allow}:
+        raise ValueError(f"endpoint {endpoint!r} is not in the {env_var} allowlist")
+
+
+def check_value_allowed(env_var: str, value: str) -> None:
+    """Raise ValueError if value is not in the allowlist named by env_var,
+    matched exactly (used for non-URL identifiers such as a GCP project)."""
+    allow = _split_allow(env_var)
+    if not allow:
+        return
+    if value not in allow:
+        raise ValueError(f"value {value!r} is not in the {env_var} allowlist")
+
+
+class _NoAliasSafeLoader(yaml.SafeLoader):
+    """SafeLoader that refuses YAML aliases, blocking the "billion laughs"
+    alias-expansion DoS that a <1 MiB config could otherwise trigger."""
+
+    def compose_node(self, parent, index):  # type: ignore[no-untyped-def]
+        if isinstance(self.peek_event(), yaml.events.AliasEvent):
+            raise yaml.YAMLError("YAML aliases are not allowed in .kumokagi.yaml")
+        return super().compose_node(parent, index)
 
 
 @dataclass
@@ -77,8 +129,13 @@ class Config:
             raise ValueError("azure backend requires vault URL in mount or azure.vault_url")
         if self.backend == "gcp" and not self.mount and not self.gcp.project:
             raise ValueError("gcp backend requires project ID in mount or gcp.project")
-        if self.backend == "onepassword" and not self.mount:
-            raise ValueError("onepassword backend requires vault name in mount")
+        if self.backend == "onepassword":
+            if not self.mount:
+                raise ValueError("onepassword backend requires vault name in mount")
+            # A "/" in the vault name would add a path segment to the op:// ref
+            # (op://{vault}/{item}/{field}) and address a different field.
+            if "/" in self.mount:
+                raise ValueError(f"onepassword vault name must not contain '/': {self.mount!r}")
 
 
 def load_config(path: str = CONFIG_FILE) -> Config:
@@ -86,7 +143,7 @@ def load_config(path: str = CONFIG_FILE) -> Config:
     if size > MAX_CONFIG_BYTES:
         raise ValueError(f"config {path} is too large ({size} bytes, max {MAX_CONFIG_BYTES})")
     with open(path) as f:
-        data = yaml.safe_load(f) or {}
+        data = yaml.load(f, Loader=_NoAliasSafeLoader) or {}
 
     vault_data = data.get("vault", {}) or {}
     aws_data = data.get("aws", {}) or {}

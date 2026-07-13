@@ -44,6 +44,11 @@ func New(ctx context.Context, cfg *config.Config) (*Client, error) {
 	if vaultURL == "" {
 		vaultURL = cfg.Mount
 	}
+	// Fail closed: a hostile config redirecting the vault URL to an attacker
+	// host would exfiltrate an Entra ID token valid against every Key Vault.
+	if err := config.CheckHostAllowed(config.EnvAllowedAzureVaults, vaultURL); err != nil {
+		return nil, err
+	}
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return nil, fmt.Errorf("azure credential: %w", err)

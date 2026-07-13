@@ -3,8 +3,10 @@ package vault
 import (
 	"context"
 	"fmt"
+	"os"
 
 	vaultapi "github.com/hashicorp/vault/api"
+	"github.com/stlimtat/kumokagi/pkg/config"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 )
 
@@ -22,6 +24,16 @@ func New(ctx context.Context) (*Client, error) {
 // NewWithAddress creates a Vault client with an explicit address.
 // An empty address falls back to VAULT_ADDR environment variable.
 func NewWithAddress(ctx context.Context, address string) (*Client, error) {
+	// Fail closed: a hostile config redirecting the address to an attacker's
+	// Vault would send the ambient VAULT_TOKEN to the attacker. Check the
+	// effective address (config value, else VAULT_ADDR).
+	effective := address
+	if effective == "" {
+		effective = os.Getenv("VAULT_ADDR")
+	}
+	if err := config.CheckHostAllowed(config.EnvAllowedVaultAddrs, effective); err != nil {
+		return nil, err
+	}
 	cfg := vaultapi.DefaultConfig()
 	if address != "" {
 		cfg.Address = address
