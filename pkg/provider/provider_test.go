@@ -52,6 +52,11 @@ func TestSecretPath_Validate(t *testing.T) {
 		"leading dash in env":         {Mount: "secret", Env: "-x", App: "app", Key: "k"},
 		"traversal in mount":          {Mount: "secret/..", Env: "prod", App: "app", Key: "k"},
 		"newline in app":              {Mount: "secret", Env: "prod", App: "app\nx", Key: "k"},
+		"trailing newline in key":     {Mount: "secret", Env: "prod", App: "app", Key: "db_password\n"},
+		"trailing newline in env":     {Mount: "secret", Env: "prod\n", App: "app", Key: "k"},
+		"dotdot segment key":          {Mount: "secret", Env: "prod", App: "app", Key: ".."},
+		"dotdot segment app":          {Mount: "secret", Env: "prod", App: "..", Key: "k"},
+		"dot segment env":             {Mount: "secret", Env: ".", App: "app", Key: "k"},
 		"empty env":                   {Mount: "secret", Env: "", App: "app", Key: "k"},
 	}
 	for name, p := range invalid {

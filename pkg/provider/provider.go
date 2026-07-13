@@ -18,8 +18,23 @@ var ErrInvalidPath = errors.New("invalid secret path")
 // identifierRe matches a safe env/app/key component: alphanumerics plus
 // dot/underscore/dash, first char never a dash. Forbidding "/" blocks Vault
 // logical-path traversal; forbidding a leading "-" and "="/"["/"]" blocks
-// option and assignment injection into the op CLI.
+// option and assignment injection into the op CLI. Go's RE2 anchors "$" at end
+// of text, so a trailing newline is already rejected. A component equal to "."
+// or ".." still passes this pattern, so validateIdentifier rejects those
+// explicitly: as a lone path segment, ".." can be collapsed by an HTTP router
+// (e.g. Vault's) into a real traversal.
 var identifierRe = regexp.MustCompile(`^[A-Za-z0-9_.][A-Za-z0-9._-]{0,252}$`)
+
+// validateIdentifier reports whether s is a safe path component.
+func validateIdentifier(field, s string) error {
+	if s == "." || s == ".." {
+		return fmt.Errorf("%w: %s %q is a reserved path segment", ErrInvalidPath, field, s)
+	}
+	if !identifierRe.MatchString(s) {
+		return fmt.Errorf("%w: %s %q", ErrInvalidPath, field, s)
+	}
+	return nil
+}
 
 // SecretPath is the fully-qualified location of a secret.
 // Convention: {mount}/data/{env}/{app}/{key}
@@ -40,14 +55,16 @@ func (p SecretPath) Validate() error {
 	if err := validateMount(p.Mount); err != nil {
 		return err
 	}
-	if !identifierRe.MatchString(p.Env) {
-		return fmt.Errorf("%w: env %q", ErrInvalidPath, p.Env)
+	if err := validateIdentifier("env", p.Env); err != nil {
+		return err
 	}
-	if !identifierRe.MatchString(p.App) {
-		return fmt.Errorf("%w: app %q", ErrInvalidPath, p.App)
+	if err := validateIdentifier("app", p.App); err != nil {
+		return err
 	}
-	if p.Key != "" && !identifierRe.MatchString(p.Key) {
-		return fmt.Errorf("%w: key %q", ErrInvalidPath, p.Key)
+	if p.Key != "" {
+		if err := validateIdentifier("key", p.Key); err != nil {
+			return err
+		}
 	}
 	return nil
 }

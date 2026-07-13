@@ -41,6 +41,13 @@ def test_valid_paths(path):
         SecretPath(mount="secret", env="-x", app="app", key="k"),
         SecretPath(mount="secret/..", env="prod", app="app", key="k"),
         SecretPath(mount="secret", env="prod", app="app\nx", key="k"),
+        # trailing newline: re.match with "$" accepts these, fullmatch rejects
+        SecretPath(mount="secret", env="prod", app="app", key="db_password\n"),
+        SecretPath(mount="secret", env="prod\n", app="app", key="k"),
+        # "." / ".." are reserved path segments a router can collapse
+        SecretPath(mount="secret", env="prod", app="app", key=".."),
+        SecretPath(mount="secret", env="prod", app="..", key="k"),
+        SecretPath(mount="secret", env=".", app="app", key="k"),
         SecretPath(mount="secret", env="", app="app", key="k"),
     ],
 )
