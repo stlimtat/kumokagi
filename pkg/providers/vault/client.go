@@ -7,8 +7,15 @@ import (
 
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/stlimtat/kumokagi/pkg/config"
+	"github.com/stlimtat/kumokagi/pkg/factory"
 	"github.com/stlimtat/kumokagi/pkg/provider"
 )
+
+func init() {
+	factory.Register("vault", func(ctx context.Context, cfg *config.Config) (provider.Provider, error) {
+		return NewWithAddress(ctx, cfg.Vault.Address)
+	})
+}
 
 // Client implements provider.Provider for HashiCorp Vault KV v2.
 type Client struct {
