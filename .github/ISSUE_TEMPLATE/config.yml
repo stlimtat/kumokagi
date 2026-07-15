@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://stlimtat.github.io/kumokagi/
+    about: Quickstart, per-backend How-To guides with troubleshooting, and the ADRs.
+  - name: Security vulnerability
+    url: https://github.com/stlimtat/kumokagi/security/advisories/new
+    about: Report a vulnerability privately — please do NOT open a public issue.
+  - name: Question / discussion
+    url: https://github.com/stlimtat/kumokagi/discussions
+    about: Usage questions and ideas that aren't yet a bug or feature request.
